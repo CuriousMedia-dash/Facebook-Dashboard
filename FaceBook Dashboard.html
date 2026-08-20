@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meme Marketing Campaign — Campaign Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f2f7;--white:#fff;--text:#1a1a2e;--text2:#5a5a72;--text3:#9999b0;
+  --border:#e2e4ec;--accent:#3b5bdb;--radius:14px;--radius-sm:8px;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* SETUP */
+.setup{position:fixed;inset:0;background:linear-gradient(135deg,#0f0f13 55%,#1a0a2e);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1.5rem;overflow-y:auto}
+.setup-box{background:#1c1c2e;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:2.5rem;max-width:620px;width:100%;color:#fff}
+.setup-logo{font-size:15px;font-weight:800;letter-spacing:1px;margin-bottom:1.5rem;opacity:.6}
+.setup-title{font-size:22px;font-weight:700;margin-bottom:8px}
+.setup-sub{font-size:13px;color:rgba(255,255,255,.5);margin-bottom:1.5rem;line-height:1.7}
+.code-block{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.25rem;font-family:monospace;font-size:12px;color:#7dd3fc;white-space:pre;overflow-x:auto;line-height:1.6}
+.steps{display:flex;flex-direction:column;gap:9px;margin-bottom:1.5rem}
+.step{display:flex;gap:10px;font-size:12.5px;color:rgba(255,255,255,.7);line-height:1.5}
+.sn{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.setup-inp{width:100%;font-family:'Inter',sans-serif;font-size:13px;padding:12px 14px;border-radius:10px;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff;outline:none;margin-bottom:8px}
+.setup-inp::placeholder{color:rgba(255,255,255,.3)}
+.setup-inp:focus{border-color:var(--accent)}
+.setup-err{font-size:12px;color:#f87171;margin-bottom:12px;display:none;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:10px 12px;line-height:1.5;white-space:pre-line}
+.setup-btns{display:flex;gap:8px}
+.btn-connect{flex:1;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;padding:12px;border-radius:10px;border:none;background:var(--accent);color:#fff;cursor:pointer}
+.btn-connect:hover{background:#2f4bc7}
+.btn-skip{font-family:'Inter',sans-serif;font-size:13px;padding:12px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:transparent;color:rgba(255,255,255,.6);cursor:pointer}
+.setup-loading{display:none;text-align:center;font-size:13px;color:rgba(255,255,255,.5);padding:8px 0}
+.spin{display:inline-block;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,#0f0f13 60%,#1a0614);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:64px}
+.header-title{color:#fff;font-size:18px;font-weight:700}
+.header-logo{font-size:17px;font-weight:800;color:#fff;letter-spacing:1px}
+
+/* API BAR */
+.api-bar{background:var(--white);border-bottom:1px solid var(--border);padding:.65rem 2rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.api-label{font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap}
+.api-inp{flex:1;min-width:200px;font-family:'Inter',sans-serif;font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none}
+.api-inp:focus{border-color:var(--accent)}
+.api-btn{font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:6px 14px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;cursor:pointer;white-space:nowrap}
+.api-btn:hover{background:#2f4bc7}
+.api-btn:disabled{background:#9999b0;cursor:not-allowed}
+.api-status{font-size:12px;color:var(--text3);max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.api-status.ok{color:#16a34a}
+.api-status.err{color:#dc2626}
+.api-reset{font-size:11px;color:#dc2626;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;padding:0;white-space:nowrap}
+
+/* KPI */
+.kpi-bar{background:var(--white);border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap}
+.kpi-item{flex:1;min-width:130px;padding:1rem 1.5rem;border-right:1px solid var(--border)}
+.kpi-item:last-child{border-right:none}
+.kpi-num{font-size:26px;font-weight:800;letter-spacing:-1px;line-height:1}
+.kpi-lbl{font-size:11px;color:var(--text2);margin-top:4px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+
+/* TABS */
+.tab-bar{background:var(--white);border-bottom:1px solid var(--border);display:flex;overflow-x:auto;padding:0 1.5rem}
+.tab-btn{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;padding:12px 16px;color:var(--text2);border:none;border-bottom:2.5px solid transparent;background:none;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.tab-content{display:none;padding:1.5rem 2rem}
+.tab-content.active{display:block}
+
+/* OVERVIEW */
+.ov-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:800px){.ov-row{grid-template-columns:1fr}}
+.ov-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem}
+.ov-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px}
+.donut-center{display:flex;flex-direction:column;align-items:center}
+.leg{display:flex;align-items:center;gap:7px;font-size:12px;margin-top:7px}
+.leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.leg-pct{font-weight:700;min-width:44px}
+.bkt{width:100%;border-collapse:collapse;font-size:13px}
+.bkt th{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:6px 8px;border-bottom:1px solid var(--border);text-align:right;font-weight:600}
+.bkt th:first-child{text-align:left}
+.bkt td{padding:9px 8px;text-align:right;border-bottom:1px solid var(--border);color:var(--text2)}
+.bkt td:first-child{text-align:left}
+.pl-cell{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:500}
+.pl-ico{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.reach-row{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--bg);border-radius:8px;margin-bottom:7px;font-size:13px}
+.reach-left{display:flex;align-items:center;gap:8px;font-weight:500}
+
+/* TOP10 */
+.top10-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem}
+.top10-card table{width:100%;border-collapse:collapse;font-size:13px}
+.top10-card th{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:6px 10px;border-bottom:1px solid var(--border);text-align:left;font-weight:600}
+.top10-card td{padding:10px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle}
+.top10-card td:first-child{color:var(--text3);width:30px}
+.top10-card a{color:var(--accent);font-size:12px;text-decoration:none}
+.top10-card a:hover{text-decoration:underline}
+
+/* TABS TABLE VIEW */
+.cards-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px}
+.cards-title{font-size:17px;font-weight:700}
+.cards-sub{font-size:12px;color:var(--text2)}
+.sort-sel{font-family:'Inter',sans-serif;font-size:12px;padding:6px 26px 6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--white);color:var(--text);appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235a5a72' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
+.post-table{width:100%;border-collapse:collapse;font-size:13px;background:var(--white);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+.post-table th{background:#f7f8fc;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:10px 14px;text-align:left;font-weight:600;border-bottom:1px solid var(--border)}
+.post-table th.r{text-align:right}
+.post-table td{padding:12px 14px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle}
+.post-table tr:last-child td{border-bottom:none}
+.post-table tr:hover td{background:#fafbff}
+.post-table td.r{text-align:right}
+.pl-cell{display:flex;align-items:center;gap:8px}
+.pl-ico{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sno-badge{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--bg);font-size:11px;font-weight:700;color:var(--text2);flex-shrink:0}
+.view-btn{font-size:11px;font-weight:600;padding:5px 11px;border-radius:6px;background:var(--accent);color:#fff;text-decoration:none;display:inline-block;line-height:1.4;white-space:nowrap}
+.view-btn:hover{background:#2f4bc7}
+.src-btn{font-size:11px;font-weight:500;padding:5px 11px;border-radius:6px;background:var(--bg);color:var(--text2);text-decoration:none;display:inline-block;line-height:1.4;white-space:nowrap;border:1px solid var(--border)}
+.src-btn:hover{background:var(--border)}
+
+.no-data{text-align:center;padding:3rem;color:var(--text3);font-size:14px}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;font-weight:600;background:var(--bg);color:var(--text2)}
+</style>
+</head>
+<body>
+
+<div class="setup" id="setupScreen">
+  <div class="setup-box">
+    <div class="setup-logo">Curious Media</div>
+    <div class="setup-title">Connect via Google Apps Script</div>
+    <div class="setup-sub">The dashboard automatically creates one tab for <strong>every tab in your Google Sheet</strong>, whatever the tab names are. Each tab needs columns: <strong>A</strong> S.No · <strong>B</strong> Source Content · <strong>C</strong> Posted Content · <strong>D</strong> Views · <strong>E</strong> Revenue ($)</div>
+
+    <div class="steps">
+      <div class="step"><span class="sn">1</span><span>In your Google Sheet → <strong>Extensions → Apps Script</strong> → delete ALL existing code → paste this:</span></div>
+    </div>
+    <div class="code-block" id="scriptCodeBlock">function doGet(e) {
+  const cache = CacheService.getScriptCache();
+  const forceRefresh = e &amp;&amp; e.parameter &amp;&amp; e.parameter.refresh === '1';
+  const cached = forceRefresh ? null : cache.get('sheet_data');
+  if (cached) {
+    return ContentService.createTextOutput(cached).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const out = {};
+  ss.getSheets().forEach(function(sheet) {
+    const name = sheet.getName();
+    const lastRow = sheet.getLastRow();
+    if (lastRow &lt; 1) { out[name] = []; return; }
+    // Only read columns A-E (S.No, Source, Posted, Views, Revenue)
+    const numCols = Math.min(sheet.getLastColumn(), 5);
+    if (numCols &lt; 1) { out[name] = []; return; }
+    const values = sheet.getRange(1, 1, lastRow, numCols).getValues();
+    // Rich text (for hyperlinks) is only needed on columns B and C —
+    // fetching it for every column is what made this slow before.
+    const linkColStart = 2; // column B
+    const linkColCount = Math.max(0, Math.min(numCols, 3) - 1); // covers B and C only
+    const rich = linkColCount &gt; 0
+      ? sheet.getRange(1, linkColStart, lastRow, linkColCount).getRichTextValues()
+      : [];
+    const rows = [];
+    for (var r = 0; r &lt; lastRow; r++) {
+      var row = [];
+      for (var c = 0; c &lt; numCols; c++) {
+        var v = String(values[r][c]);
+        if (c === 1 || c === 2) { // column B or C
+          try {
+            var lnk = rich[r][c - 1].getLinkUrl();
+            if (lnk) v = lnk;
+          } catch (ex) {}
+        }
+        row.push(v);
+      }
+      rows.push(row);
+    }
+    out[name] = rows;
+  });
+
+  const json = JSON.stringify(out);
+  cache.put('sheet_data', json, 21600); // cache for 6 hours
+  return ContentService
+    .createTextOutput(json)
+    .setMimeType(ContentService.MimeType.JSON);
+}</div>
+    <div class="steps">
+      <div class="step"><span class="sn">2</span><span>Click <strong>Save</strong> (💾)</span></div>
+      <div class="step"><span class="sn">3</span><span>If FIRST deploy: <strong>Deploy → New deployment</strong> → ⚙️ → <strong>Web app</strong> → Execute as: <strong>Me</strong> → Who has access: <strong>Anyone</strong> → Deploy</span></div>
+      <div class="step"><span class="sn">4</span><span>If ALREADY deployed before: <strong>Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy</strong> (this step is required after every code change!)</span></div>
+      <div class="step"><span class="sn">5</span><span>Test: open the /exec URL in an incognito tab — you must see JSON with your tab name (e.g. "Shorts ka Keeda") and rows of links</span></div>
+    </div>
+
+    <input class="setup-inp" id="setupInp" type="text" placeholder="https://script.google.com/macros/s/…/exec">
+    <div class="setup-err" id="setupErr"></div>
+    <div class="setup-loading" id="setupLoading">⏳ <span id="loadMsg">Fetching your sheet data…</span></div>
+    <div class="setup-btns">
+      <button class="btn-connect" onclick="setupConnect()">Connect &amp; Load Data →</button>
+      <button class="btn-skip" onclick="setupSkip()">Use sample data</button>
+    </div>
+  </div>
+</div>
+
+<div class="header">
+  <div class="header-title" id="campaignTitle">Meme Market Campaign-Report</div>
+  <div style="display:flex;align-items:center;gap:14px">
+    <button id="headerRefreshBtn" onclick="headerRefresh()" title="Pull latest data from the sheet (bypasses cache)"
+      style="font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap">
+      <span id="headerRefreshIcon">↻</span> Refresh data
+    </button>
+    <div class="header-logo">Curious Media</div>
+  </div>
+</div>
+
+<div class="api-bar" id="apiBar" style="display:none">
+  <div class="api-label">🔗 Apps Script URL</div>
+  <input class="api-inp" id="apiInp" type="text" placeholder="https://script.google.com/macros/s/…/exec">
+  <button class="api-btn" id="apiBtn" onclick="apiRefresh()"><span id="apiIcon">↻</span> Refresh</button>
+  <span class="api-status" id="apiStatus"></span>
+  <button class="api-reset" onclick="resetSetup()">Reset</button>
+</div>
+
+<div class="kpi-bar">
+  <div class="kpi-item"><div class="kpi-num" id="kViews">—</div><div class="kpi-lbl">Total Views</div></div>
+  <div class="kpi-item"><div class="kpi-num" id="kRevenue">—</div><div class="kpi-lbl">Total Revenue</div></div>
+  <div class="kpi-item"><div class="kpi-num" id="kPosts">—</div><div class="kpi-lbl">Total Posts</div></div>
+  <div class="kpi-item"><div class="kpi-num" id="kRPM">—</div><div class="kpi-lbl">Rev / 1M Views</div></div>
+</div>
+
+<div class="tab-bar" id="tabBar">
+  <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview',this)">📊 Overview</button>
+  <!-- category tabs are generated automatically from your sheet tabs -->
+</div>
+
+<div id="tab-overview" class="tab-content active">
+  <div class="ov-row">
+    <div class="ov-card">
+      <div class="ov-title">💰 Revenue split by category</div>
+      <div class="donut-center">
+        <canvas id="donutChart" width="160" height="160" role="img">Revenue chart</canvas>
+        <div id="donutLegend" style="width:100%;margin-top:8px"></div>
+      </div>
+    </div>
+    <div class="ov-card">
+      <div class="ov-title">Category breakdown</div>
+      <table class="bkt">
+        <thead><tr><th>Category</th><th>Posts</th><th>Views</th><th>Revenue</th></tr></thead>
+        <tbody id="catBody"></tbody>
+      </table>
+    </div>
+    <div class="ov-card">
+      <div class="ov-title">Views by platform</div>
+      <div id="platBreakdown"></div>
+    </div>
+  </div>
+  <div class="top10-card">
+    <div class="ov-title" style="margin-bottom:12px">🏆 Top 10 posts by views</div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>#</th><th>Platform</th><th>Category</th><th>Views</th><th>Revenue</th><th>Posted Link</th></tr></thead>
+        <tbody id="top10Body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="dynamicTabs"><!-- one tab per sheet tab, generated automatically --></div>
+
+<script>
+// ═════════════════════════════════════════════════════════════════════
+// ★★★ YOUR APPS SCRIPT LINK (already pasted in) ★★★
+// The file auto-loads live sheet data every time anyone opens it.
+// Set to '' (empty) to show the setup screen instead.
+// ═════════════════════════════════════════════════════════════════════
+const HARDCODED_URL = 'https://script.google.com/macros/s/AKfycbwH9VXzxIHr-5D3hMvC40LwcBVXbq9zpfSVbfps585aVnWBFSyOhT58X6gwBgrKXavG/exec';
+
+// ── CONFIG ───────────────────────────────────────────────────────────
+const STORAGE_KEY = 'arabia_kadali_script_url';
+const PALETTE = ['#3b5bdb','#e1306c','#f59e0b','#16a34a','#8b5cf6','#0ea5e9','#dc2626','#0d9488','#c026d3','#65a30d'];
+const PLAT = {
+  instagram:{ label:'Instagram', color:'#e1306c', bg:'#fce8f0', emoji:'📸',
+    svg:`<svg width="13" height="13" viewBox="0 0 24 24" fill="#e1306c"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>` },
+  facebook:{ label:'Facebook', color:'#1877f2', bg:'#e7f0fd', emoji:'👥',
+    svg:`<svg width="13" height="13" viewBox="0 0 24 24" fill="#1877f2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>` },
+  youtube:{ label:'YouTube', color:'#ff0000', bg:'#ffe8e8', emoji:'▶',
+    svg:`<svg width="13" height="13" viewBox="0 0 24 24" fill="#ff0000"><path d="M23.495 6.205a3.007 3.007 0 00-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 00.527 6.205a31.247 31.247 0 00-.522 5.805 31.247 31.247 0 00.522 5.783 3.007 3.007 0 002.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 002.088-2.088 31.247 31.247 0 00.5-5.783 31.247 31.247 0 00-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>` },
+};
+
+// ── DATA ─────────────────────────────────────────────────────────────
+// CATS = [{id, label, color, posts:[...]}] — one per sheet tab, built automatically
+let CATS = [];
+let donutChart;
+let LAST_DIAG = '';
+
+// ── HELPERS ──────────────────────────────────────────────────────────
+function fmt(n){ if(!n||isNaN(n))return'0'; if(n>=1e6)return(n/1e6).toFixed(2)+'M'; if(n>=1e3)return(n/1e3).toFixed(1)+'K'; return Number(n).toLocaleString('en-IN'); }
+function fmtMoney(n){ if(!n||isNaN(n))return'$0.00'; return '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function esc(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// Handles "14K","8.1K","1.2M","115K","14,000" correctly.
+// Also ignores date strings Sheets returns for date-formatted cells,
+// e.g. "Sat Dec 30 1899 00:05:00 GMT+0521 (India Standard Time)"
+function cleanNum(s){
+  s=String(s||'').trim();
+  if(/GMT|Standard Time/i.test(s)) return 0;
+  s=s.replace(/,/g,'');
+  const m=s.match(/([\d.]+)\s*([kKmMbB]?)/);
+  if(!m) return 0;
+  let n=parseFloat(m[1])||0;
+  const suf=(m[2]||'').toLowerCase();
+  if(suf==='k') n*=1e3;
+  if(suf==='m') n*=1e6;
+  if(suf==='b') n*=1e9;
+  return Math.round(n);
+}
+// Handles "$0.02","0.1","1,234.56" — ignores date strings
+function cleanMoney(s){
+  s=String(s||'').trim();
+  if(/GMT|Standard Time/i.test(s)) return 0;
+  const n=parseFloat(s.replace(/[^0-9.\-]/g,''));
+  return isNaN(n)?0:n;
+}
+function looksLikeUrl(s){
+  s=String(s||'').trim();
+  return /^https?:\/\//i.test(s) || /^fb\.watch\//i.test(s);
+}
+function detectPlatform(url){
+  const u=String(url||'').toLowerCase();
+  if(u.includes('facebook.com')||u.includes('fb.watch')||u.includes('fb.com')) return 'facebook';
+  if(u.includes('youtube.com')||u.includes('youtu.be')) return 'youtube';
+  return 'instagram';
+}
+function shortLink(url){
+  try{
+    const u=new URL(url);
+    let p=u.pathname.replace(/\/$/,'');
+    if(p.length>28) p='…'+p.slice(-26);
+    return u.hostname.replace('www.','')+p;
+  }catch(e){ return String(url||'').slice(0,40); }
+}
+
+// ── PARSER — your exact sheet layout ─────────────────────────────────
+// Col A: S. No. | Col B: Source Content | Col C: Posted Content
+// Col D: Views ("14K")  | Col E: Revenue ($) ("0.02")
+function parseRows(rows, category){
+  const out=[];
+  for(let i=0;i<(rows||[]).length;i++){
+    const r=rows[i];
+    if(!r) continue;
+    const sno        = String(r[0]||'').trim();
+    const sourceLink = String(r[1]||'').trim();
+    const postedLink = String(r[2]||'').trim();
+    const views      = cleanNum(r[3]);
+    const revenue    = cleanMoney(r[4]);
+    // A data row must have a link in B or C — this skips the yellow
+    // header row and any blank/title rows automatically
+    if(!looksLikeUrl(sourceLink) && !looksLikeUrl(postedLink)) continue;
+    out.push({
+      sno: sno || String(out.length+1),
+      name: 'Post '+(sno || (out.length+1)),
+      sourceLink, postedLink, views, revenue,
+      platform: detectPlatform(postedLink || sourceLink),
+      category
+    });
+  }
+  return out;
+}
+
+// ── PROCESS: one dashboard category per sheet tab, ANY tab name ──────
+function processRaw(raw){
+  const tabNames=Object.keys(raw||{});
+  const cats=[];
+  tabNames.forEach((tabName)=>{
+    const posts=parseRows(raw[tabName], tabName.trim());
+    if(posts.length){
+      cats.push({ id:'cat'+cats.length, label:tabName.trim(), color:PALETTE[cats.length%PALETTE.length], posts });
+    }
+  });
+  // Build a sample of raw cell values from row 2 for debugging
+  let rawSample = '';
+  if(tabNames.length){
+    const sampleRows = raw[tabNames[0]] || [];
+    // show row 2 (index 1) — the first actual data row
+    const r2 = sampleRows[1] || sampleRows[0] || [];
+    rawSample = r2.length ? '\n\nRaw row 2 values from Apps Script:\n  B="'+r2[1]+'"\n  C="'+r2[2]+'"' : '';
+  }
+  LAST_DIAG = tabNames.length
+    ? 'Tabs received: ['+tabNames.join(', ')+'] → '+ (cats.length? cats.map(c=>`"${c.label}": ${c.posts.length} posts`).join(' · ') : 'no rows with links found in columns B/C') + rawSample
+    : 'Script returned EMPTY {} — your Apps Script is still running OLD code. Paste the new code, then Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy.';
+  return cats;
+}
+
+function explainZeroRows(){
+  alert('Connected, but 0 usable rows found.\n\n'+LAST_DIAG+
+    '\n\nChecklist:\n'+
+    '1) Data must be in columns: B=Source link, C=Posted link, D=Views, E=Revenue\n'+
+    '2) If you edited the Apps Script code, you MUST redeploy: Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy\n'+
+    '3) Open your /exec URL in a browser tab — the JSON there is exactly what this dashboard receives.');
+}
+
+// ── BUILD TAB BAR + TAB PAGES DYNAMICALLY ────────────────────────────
+function buildTabs(){
+  // remove old dynamic tab buttons
+  document.querySelectorAll('#tabBar .tab-btn[data-dyn]').forEach(b=>b.remove());
+  const bar=document.getElementById('tabBar');
+  const wrap=document.getElementById('dynamicTabs');
+  wrap.innerHTML='';
+  CATS.forEach(c=>{
+    const btn=document.createElement('button');
+    btn.className='tab-btn';
+    btn.dataset.tab=c.id;
+    btn.dataset.dyn='1';
+    btn.innerHTML=`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c.color};margin-right:6px"></span>${esc(c.label)}`;
+    btn.onclick=function(){ switchTab(c.id,this); };
+    bar.appendChild(btn);
+
+    const tv=c.posts.reduce((s,p)=>s+p.views,0), tr=c.posts.reduce((s,p)=>s+p.revenue,0);
+    const div=document.createElement('div');
+    div.id='tab-'+c.id;
+    div.className='tab-content';
+    div.innerHTML=`
+      <div class="cards-hdr">
+        <div><div class="cards-title">${esc(c.label)}</div>
+        <div class="cards-sub">${c.posts.length} posts · ${fmt(tv)} views · ${fmtMoney(tr)} revenue</div></div>
+        <select class="sort-sel" onchange="renderCards('${c.id}',this.value)">
+          <option value="views">Views ↓</option><option value="revenue">Revenue ↓</option><option value="sno">S.No ↑</option>
+        </select>
+      </div>
+      <div id="${c.id}Cards"></div>`;
+    wrap.appendChild(div);
+    renderCards(c.id,'views');
+  });
+  // if the active tab no longer exists, go back to Overview
+  if(!document.querySelector('.tab-content.active')){
+    switchTab('overview', document.querySelector('[data-tab="overview"]'));
+  }
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────
+function allPosts(){ return CATS.flatMap(c=>c.posts); }
+
+function renderAll(){
+  buildTabs();
+  renderKPIs();
+  renderOverview();
+}
+
+function renderKPIs(){
+  const all=allPosts();
+  const tv=all.reduce((s,p)=>s+p.views,0);
+  const tr=all.reduce((s,p)=>s+p.revenue,0);
+  document.getElementById('kViews').textContent=fmt(tv);
+  document.getElementById('kRevenue').textContent=fmtMoney(tr);
+  document.getElementById('kPosts').textContent=all.length.toLocaleString();
+  document.getElementById('kRPM').textContent=tv?fmtMoney(tr/tv*1e6):'—';
+}
+
+function renderOverview(){
+  // Category breakdown table
+  document.getElementById('catBody').innerHTML=CATS.length?CATS.map(c=>{
+    const v=c.posts.reduce((s,p)=>s+p.views,0);
+    const rev=c.posts.reduce((s,p)=>s+p.revenue,0);
+    return `<tr>
+      <td><div class="pl-cell"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${c.color}"></span>${esc(c.label)}</div></td>
+      <td>${c.posts.length}</td>
+      <td>${fmt(v)}</td>
+      <td style="font-weight:700;color:var(--text)">${fmtMoney(rev)}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="4" class="no-data">No data</td></tr>';
+
+  // ── DONUT: REVENUE split by category (one slice per sheet tab) ─────
+  const catRev=CATS.map(c=>({label:c.label,color:c.color,revenue:c.posts.reduce((s,p)=>s+p.revenue,0)})).filter(c=>c.revenue>0);
+  const rtotal=catRev.reduce((s,c)=>s+c.revenue,0)||1;
+  if(donutChart){ donutChart.destroy(); donutChart=null; }
+  if(catRev.length){
+    donutChart=new Chart(document.getElementById('donutChart'),{
+      type:'doughnut',
+      data:{labels:catRev.map(c=>c.label),datasets:[{data:catRev.map(c=>c.revenue),backgroundColor:catRev.map(c=>c.color),borderWidth:2,borderColor:'#fff'}]},
+      options:{responsive:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${fmtMoney(c.raw)}`}}}}
+    });
+    document.getElementById('donutLegend').innerHTML=catRev.map(c=>`
+      <div class="leg"><span class="leg-dot" style="background:${c.color}"></span>
+      <span class="leg-pct" style="color:${c.color}">${(c.revenue/rtotal*100).toFixed(1)}%</span>
+      <span style="color:var(--text2);font-size:12px">${esc(c.label)} · ${fmtMoney(c.revenue)}</span></div>`).join('');
+  } else {
+    document.getElementById('donutLegend').innerHTML='<div class="no-data" style="padding:1rem">No revenue data yet</div>';
+  }
+
+  // Views by platform (auto-detected from links)
+  const platV={instagram:0,facebook:0,youtube:0};
+  allPosts().forEach(p=>{ platV[p.platform]+=p.views; });
+  const ptotal=Object.values(platV).reduce((s,v)=>s+v,0)||1;
+  const pks=Object.keys(platV).filter(k=>platV[k]>0);
+  document.getElementById('platBreakdown').innerHTML=pks.length?pks.map(k=>{
+    const pl=PLAT[k];
+    return `<div class="reach-row"><div class="reach-left"><div class="pl-ico" style="background:${pl.bg}">${pl.svg}</div>${pl.label}</div>
+    <div style="font-size:14px;font-weight:700">${fmt(platV[k])}<span style="font-size:11px;color:var(--text3);margin-left:4px">(${(platV[k]/ptotal*100).toFixed(1)}%)</span></div></div>`;
+  }).join(''):'<div class="no-data" style="padding:1rem">No data</div>';
+
+  // Top 10 by views (with revenue)
+  const top10=[...allPosts()].sort((a,b)=>b.views-a.views).slice(0,10);
+  document.getElementById('top10Body').innerHTML=top10.length?top10.map((p,i)=>{
+    const pl=PLAT[p.platform];
+    return `<tr>
+      <td>${i+1}</td>
+      <td><div class="pl-cell"><div class="pl-ico" style="background:${pl.bg}">${pl.svg}</div>${pl.label}</div></td>
+      <td><span class="tag">${esc(p.category)}</span></td>
+      <td style="font-weight:700;font-size:14px;color:var(--text)">${fmt(p.views)}</td>
+      <td style="font-weight:600;color:#16a34a">${fmtMoney(p.revenue)}</td>
+      <td>${p.postedLink?`<a href="${esc(p.postedLink)}" target="_blank" rel="noopener">View ↗</a>`:'-'}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="6" class="no-data">No data</td></tr>';
+}
+
+function renderCards(catId,sort='views'){
+  const cat=CATS.find(c=>c.id===catId);
+  const el=document.getElementById(catId+'Cards');
+  if(!cat||!el) return;
+  let sorted=[...cat.posts];
+  if(sort==='revenue') sorted.sort((a,b)=>b.revenue-a.revenue);
+  else if(sort==='sno') sorted.sort((a,b)=>parseInt(a.sno)-parseInt(b.sno));
+  else sorted.sort((a,b)=>b.views-a.views);
+  if(!sorted.length){ el.innerHTML='<div class="no-data">No posts found.</div>'; return; }
+  el.innerHTML='<div style="overflow-x:auto"><table class="post-table"><thead><tr>'
+    +'<th>#</th><th>Platform</th><th class="r">Views</th><th class="r">Revenue</th><th>Posted Link</th><th>Source Link</th>'
+    +'</tr></thead><tbody>'
+    +sorted.map(function(p){
+      var ppl=PLAT[p.platform];
+      return '<tr>'
+        +'<td><span class="sno-badge">'+esc(p.sno)+'</span></td>'
+        +'<td><div class="pl-cell"><div class="pl-ico" style="background:'+ppl.bg+'">'+ppl.svg+'</div>'+ppl.label+'</div></td>'
+        +'<td class="r" style="font-weight:700;color:var(--text)">'+fmt(p.views)+'</td>'
+        +'<td class="r" style="font-weight:700;color:#16a34a">'+fmtMoney(p.revenue)+'</td>'
+        +'<td>'+(p.postedLink?'<a class="view-btn" href="'+esc(p.postedLink)+'" target="_blank" rel="noopener">View ↗</a>':'<span style="color:var(--text3)">—</span>')+'</td>'
+        +'<td>'+(p.sourceLink?'<a class="src-btn" href="'+esc(p.sourceLink)+'" target="_blank" rel="noopener">Source ↗</a>':'<span style="color:var(--text3)">—</span>')+'</td>'
+        +'</tr>';
+    }).join('')
+    +'</tbody></table></div>';
+}
+
+// ── TAB SWITCH ────────────────────────────────────────────────────────
+function switchTab(id,el){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  const target=document.getElementById('tab-'+id);
+  if(target) target.classList.add('active');
+}
+
+// ── FETCH ─────────────────────────────────────────────────────────────
+// forceRefresh=true bypasses the Apps Script cache and recomputes from
+// the live sheet (slower). forceRefresh=false (default) lets Apps
+// Script serve its 6-hour cache when available (fast — this is what
+// runs on every normal page load).
+function buildFetchUrl(url, forceRefresh){
+  try{
+    const u = new URL(url);
+    if (forceRefresh) u.searchParams.set('refresh','1');
+    // cache-bust the BROWSER/CDN layer too, not just Apps Script
+    u.searchParams.set('t', Date.now());
+    return u.toString();
+  }catch(e){
+    // fallback for odd URL shapes
+    const sep = url.includes('?') ? '&' : '?';
+    return url + sep + (forceRefresh ? 'refresh=1&' : '') + 't=' + Date.now();
+  }
+}
+
+async function fetchFromScript(url, forceRefresh){
+  const ctrl=new AbortController();
+  const tid=setTimeout(()=>ctrl.abort(),20000);
+  try{
+    const res=await fetch(buildFetchUrl(url, forceRefresh),{signal:ctrl.signal,redirect:'follow'});
+    clearTimeout(tid);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    return await res.json();
+  }catch(e){
+    clearTimeout(tid);
+    if(e.name==='AbortError') throw new Error('Timed out after 20s');
+    throw e;
+  }
+}
+
+// ── STATUS ────────────────────────────────────────────────────────────
+function setStatus(msg,cls){ const el=document.getElementById('apiStatus'); el.innerHTML=msg; el.className='api-status '+(cls||''); }
+
+// ── HEADER REFRESH (works in both brand mode and normal mode) ─────────
+async function headerRefresh(){
+  const url = HARDCODED_URL || document.getElementById('apiInp').value.trim() || localStorage.getItem(STORAGE_KEY);
+  if(!url){ alert('No Apps Script URL configured yet.'); return; }
+  const btn = document.getElementById('headerRefreshBtn');
+  const icon = document.getElementById('headerRefreshIcon');
+  btn.disabled = true;
+  icon.className = 'spin';
+  try{
+    const raw = await fetchFromScript(url, true); // always bypasses cache
+    CATS = processRaw(raw);
+    const total = allPosts().length;
+    if(total===0){ explainZeroRows(); }
+    else setStatus(`✓ ${total} posts · ${CATS.length} tab(s) · ${new Date().toLocaleTimeString()}`,'ok');
+    renderAll();
+  }catch(e){
+    alert('Refresh failed: '+e.message);
+  }finally{
+    btn.disabled = false;
+    icon.className = '';
+  }
+}
+
+// ── SETUP ─────────────────────────────────────────────────────────────
+async function setupConnect(){
+  const url=document.getElementById('setupInp').value.trim();
+  if(!url||!url.includes('script.google.com')){ showErr('Please paste your Google Apps Script Web App URL (starts with https://script.google.com/macros/s/…)'); return; }
+  document.getElementById('setupErr').style.display='none';
+  document.getElementById('setupLoading').style.display='block';
+  try{
+    const raw=await fetchFromScript(url, true); // first connect: always get fresh data
+    CATS=processRaw(raw);
+    const total=allPosts().length;
+    if(total===0){
+      document.getElementById('setupLoading').style.display='none';
+      showErr('Connected, but 0 usable rows found.\n'+LAST_DIAG);
+      return;
+    }
+    localStorage.setItem(STORAGE_KEY,url);
+    document.getElementById('apiInp').value=url;
+    dismissSetup();
+    setStatus(`✓ ${total} posts loaded from ${CATS.length} tab(s) · ${new Date().toLocaleTimeString()}`,'ok');
+    renderAll();
+  }catch(e){
+    document.getElementById('setupLoading').style.display='none';
+    showErr('Could not connect ("'+e.message+'").\n1) "Who has access" must be "Anyone" (NOT "Anyone with Google account")\n2) Open the URL in an incognito tab — you must see raw JSON\n3) After code changes: Deploy → Manage deployments → ✏️ Edit → New version → Deploy\n4) URL must end in /exec');
+  }
+}
+
+function showErr(msg){ const el=document.getElementById('setupErr'); el.textContent=msg; el.style.display='block'; }
+function setupSkip(){ loadSample(); dismissSetup(); renderAll(); }
+function dismissSetup(){
+  document.getElementById('setupScreen').style.display='none';
+  // Brand mode (hardcoded URL): URL bar stays hidden
+  document.getElementById('apiBar').style.display = HARDCODED_URL ? 'none' : 'flex';
+  document.getElementById('setupLoading').style.display='none';
+}
+
+async function apiRefresh(){
+  const url=document.getElementById('apiInp').value.trim();
+  if(!url){ setStatus('Paste your Apps Script URL first','err'); return; }
+  localStorage.setItem(STORAGE_KEY,url);
+  document.getElementById('apiBtn').disabled=true;
+  document.getElementById('apiIcon').className='spin';
+  setStatus('<span class="spin">↻</span> Loading…','');
+  try{
+    const raw=await fetchFromScript(url, true); // manual refresh: always bypass cache, get latest sheet data
+    CATS=processRaw(raw);
+    const total=allPosts().length;
+    if(total===0){ setStatus('⚠ Connected but 0 rows — see popup','err'); explainZeroRows(); }
+    else setStatus(`✓ ${total} posts · ${CATS.length} tab(s) · ${new Date().toLocaleTimeString()}`,'ok');
+    renderAll();
+  }catch(e){
+    setStatus('✗ '+e.message+' — check deploy access is "Anyone"','err');
+  }finally{
+    document.getElementById('apiBtn').disabled=false;
+    document.getElementById('apiIcon').className='';
+  }
+}
+
+function resetSetup(){
+  if(!confirm('Reset and return to setup screen?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  document.getElementById('setupScreen').style.display='flex';
+  document.getElementById('apiBar').style.display='none';
+  document.getElementById('setupInp').value='';
+  document.getElementById('setupErr').style.display='none';
+}
+
+// ── SAMPLE DATA (mirrors your real sheet) ────────────────────────────
+function loadSample(){
+  CATS=processRaw({
+    'Shorts ka Keeda':[
+      ['S. No.','Source Content','Posted Content','Views','Revenue ($)'],
+      ['1','https://www.facebook.com/1412398277581206/videos/2137790960059408','https://www.facebook.com/share/v/1FHXngoj5E/','14K','0.02'],
+      ['2','https://www.facebook.com/1412398277581206/videos/1196854478267410','https://www.facebook.com/share/v/1EGGu6UW2v/','14K','0.03'],
+      ['3','https://www.facebook.com/1497734655049913/videos/758240917134110','https://www.facebook.com/share/v/1D2BYZ1MqD/','44K','0.21'],
+      ['4','https://www.facebook.com/1497734655049913/videos/1285923982925725','https://www.facebook.com/share/v/1JL9ZHsMsf/','115K','1.37'],
+      ['5','https://www.facebook.com/1497734655049913/videos/691466703757358','https://www.facebook.com/share/v/1FD2mmVMy8/','16K','0.08'],
+    ]
+  });
+}
+
+// ── AUTO LOAD ─────────────────────────────────────────────────────────
+async function autoLoad(){
+  const saved = HARDCODED_URL || localStorage.getItem(STORAGE_KEY);
+  if(saved){
+    dismissSetup();
+    document.getElementById('apiInp').value=saved;
+    setStatus('<span class="spin">↻</span> Auto-loading your data…','');
+    try{
+      // normal page load: allow the Apps Script cache to serve this
+      // (fast) — only the manual "Refresh" button forces a live pull
+      const raw=await fetchFromScript(saved, false);
+      CATS=processRaw(raw);
+      const total=allPosts().length;
+      if(total===0){ setStatus('⚠ Connected but 0 rows','err'); explainZeroRows(); }
+      else setStatus(`✓ ${total} posts · ${CATS.length} tab(s) · ${new Date().toLocaleTimeString()}`,'ok');
+    }catch(e){
+      loadSample();
+      setStatus('✗ '+e.message+' — showing sample data','err');
+    }
+    renderAll();
+  }
+}
+
+document.getElementById('setupInp').addEventListener('keydown',e=>{ if(e.key==='Enter') setupConnect(); });
+document.getElementById('apiInp').addEventListener('keydown',e=>{ if(e.key==='Enter') apiRefresh(); });
+
+autoLoad();
+</script>
+</body>
+</html>
