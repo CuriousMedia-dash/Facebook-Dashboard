@@ -220,7 +220,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   <div class="kpi-item"><div class="kpi-num" id="kViews">—</div><div class="kpi-lbl">Total Views</div></div>
   <div class="kpi-item"><div class="kpi-num" id="kRevenue">—</div><div class="kpi-lbl">Total Revenue</div></div>
   <div class="kpi-item"><div class="kpi-num" id="kPosts">—</div><div class="kpi-lbl">Total Posts</div></div>
-  <div class="kpi-item"><div class="kpi-num" id="kRPM">—</div><div class="kpi-lbl">Rev / 1M Views</div></div>
+  
 </div>
 
 <div class="tab-bar" id="tabBar">
@@ -448,7 +448,7 @@ function renderKPIs(){
   document.getElementById('kViews').textContent=fmt(tv);
   document.getElementById('kRevenue').textContent=fmtMoney(tr);
   document.getElementById('kPosts').textContent=all.length.toLocaleString();
-  document.getElementById('kRPM').textContent=tv?fmtMoney(tr/tv*1e6):'—';
+
 }
 
 function renderOverview(){
